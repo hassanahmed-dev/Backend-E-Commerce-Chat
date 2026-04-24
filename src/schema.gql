@@ -1,0 +1,128 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input AddCartItemInput {
+  productId: String!
+  quantity: Int!
+  userId: String!
+}
+
+input AddWishlistItemInput {
+  productId: String!
+  userId: String!
+}
+
+type AuthPayload {
+  accessToken: String!
+  user: User!
+}
+
+type CartItem {
+  id: ID!
+  product: Product!
+  quantity: Int!
+  user: User!
+}
+
+input CreateOrderInput {
+  items: [CreateOrderItemInput!]!
+  userId: String!
+}
+
+input CreateOrderItemInput {
+  productId: String!
+  quantity: Int!
+}
+
+input CreateProductInput {
+  category: String!
+  description: String!
+  imageUrl: String
+  name: String!
+  price: Float!
+  rating: Float
+  stock: Int!
+}
+
+input CreateUserInput {
+  email: String!
+  name: String!
+  password: String
+  role: String
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type Mutation {
+  addCartItem(input: AddCartItemInput!): CartItem!
+  addWishlistItem(input: AddWishlistItemInput!): WishlistItem!
+  createOrder(input: CreateOrderInput!): Order!
+  createProduct(authorization: String!, input: CreateProductInput!): Product!
+  createProducts(authorization: String!, inputs: [CreateProductInput!]!): [Product!]!
+  createUser(input: CreateUserInput!): User!
+  login(input: LoginInput!): AuthPayload!
+  removeCartItem(id: String!): Boolean!
+  removeWishlistItem(id: String!): Boolean!
+  signup(input: SignupInput!): AuthPayload!
+}
+
+type Order {
+  id: ID!
+  items: [OrderItem!]
+  status: String!
+  total: Float!
+  user: User!
+}
+
+type OrderItem {
+  id: ID!
+  product: Product!
+  quantity: Int!
+  unitPrice: Float!
+}
+
+type Product {
+  category: String!
+  description: String!
+  id: ID!
+  imageUrl: String
+  name: String!
+  price: Float!
+  rating: Float!
+  stock: Float!
+}
+
+type Query {
+  cartItems(userId: String!): [CartItem!]!
+  order(id: String!): Order
+  orders: [Order!]!
+  product(id: String!): Product
+  products: [Product!]!
+  user(id: String!): User
+  users: [User!]!
+  wishlistItems(userId: String!): [WishlistItem!]!
+}
+
+input SignupInput {
+  email: String!
+  name: String!
+  password: String!
+}
+
+type User {
+  email: String!
+  id: ID!
+  isActive: Boolean!
+  name: String!
+  role: String!
+}
+
+type WishlistItem {
+  id: ID!
+  product: Product!
+  user: User!
+}
