@@ -13,6 +13,31 @@ input AddWishlistItemInput {
   userId: String!
 }
 
+type AdminAiResponse {
+  adminMessage: Message!
+  aiMessage: Message!
+}
+
+input AdminAskAiInput {
+  conversationId: String!
+  prompt: String!
+}
+
+input AdminChatFilterInput {
+  search: String
+  status: String
+}
+
+input AdminSendMessageInput {
+  content: String!
+  conversationId: String!
+}
+
+input AssignConversationInput {
+  adminId: String!
+  conversationId: String!
+}
+
 type AuthPayload {
   accessToken: String!
   user: User!
@@ -23,6 +48,29 @@ type CartItem {
   product: Product!
   quantity: Int!
   user: User!
+}
+
+type Conversation {
+  createdAt: DateTime!
+  id: ID!
+  lastMessageAt: DateTime
+  messages: [Message!]
+  name: String
+  participants: [ConversationParticipant!]
+  status: String!
+  updatedAt: DateTime!
+}
+
+type ConversationParticipant {
+  conversation: Conversation!
+  id: ID!
+  role: String!
+  user: User!
+}
+
+input CreateAdminConversationInput {
+  chatName: String
+  initialMessage: String
 }
 
 input CreateOrderInput {
@@ -45,6 +93,12 @@ input CreateProductInput {
   stock: Int!
 }
 
+input CreateSupportConversationInput {
+  initialMessage: String
+  userEmail: String
+  userId: String
+}
+
 input CreateUserInput {
   email: String!
   name: String!
@@ -52,21 +106,43 @@ input CreateUserInput {
   role: String
 }
 
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
 input LoginInput {
   email: String!
   password: String!
 }
 
+type Message {
+  content: String!
+  conversation: Conversation!
+  createdAt: DateTime!
+  id: ID!
+  sender: User
+  senderType: String!
+}
+
 type Mutation {
   addCartItem(input: AddCartItemInput!): CartItem!
   addWishlistItem(input: AddWishlistItemInput!): WishlistItem!
+  adminAskAi(authorization: String!, input: AdminAskAiInput!): AdminAiResponse!
+  adminSendMessage(authorization: String!, input: AdminSendMessageInput!): Message!
+  assignConversation(authorization: String!, input: AssignConversationInput!): ConversationParticipant!
+  closeConversation(authorization: String!, conversationId: String!): Conversation!
+  createAdminConversation(authorization: String!, input: CreateAdminConversationInput): Conversation!
   createOrder(input: CreateOrderInput!): Order!
   createProduct(authorization: String!, input: CreateProductInput!): Product!
   createProducts(authorization: String!, inputs: [CreateProductInput!]!): [Product!]!
+  createSupportConversation(authorization: String!, input: CreateSupportConversationInput!): Conversation!
   createUser(input: CreateUserInput!): User!
+  deleteConversationPermanently(authorization: String!, conversationId: String!): Boolean!
   login(input: LoginInput!): AuthPayload!
   removeCartItem(id: String!): Boolean!
   removeWishlistItem(id: String!): Boolean!
+  renameConversation(authorization: String!, chatName: String!, conversationId: String!): Conversation!
   signup(input: SignupInput!): AuthPayload!
 }
 
@@ -97,7 +173,9 @@ type Product {
 }
 
 type Query {
+  adminConversations(authorization: String!, filter: AdminChatFilterInput): [Conversation!]!
   cartItems(userId: String!): [CartItem!]!
+  conversationMessages(authorization: String!, conversationId: String!): [Message!]!
   order(id: String!): Order
   orders: [Order!]!
   product(id: String!): Product

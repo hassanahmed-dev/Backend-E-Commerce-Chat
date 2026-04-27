@@ -3,6 +3,8 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { CartItem } from "./cart-item.entity";
 import { WishlistItem } from "./wishlist-item.entity";
 import { Order } from "./order.entity";
+import { ConversationParticipant } from "./conversation-participant.entity";
+import { Message } from "./message.entity";
 
 @ObjectType()
 @Entity("users")
@@ -38,4 +40,10 @@ export class User {
 
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
+
+  @OneToMany(() => ConversationParticipant, (participant) => participant.user)
+  conversationParticipants: ConversationParticipant[];
+
+  @OneToMany(() => Message, (message) => message.sender)
+  sentMessages: Message[];
 }
