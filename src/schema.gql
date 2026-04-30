@@ -43,6 +43,17 @@ type AuthPayload {
   user: User!
 }
 
+type Booking {
+  adminNote: String
+  createdAt: DateTime!
+  id: ID!
+  scheduledAt: DateTime!
+  serviceType: String!
+  status: String!
+  user: User!
+  userNote: String
+}
+
 type CartItem {
   id: ID!
   product: Product!
@@ -71,6 +82,12 @@ type ConversationParticipant {
 input CreateAdminConversationInput {
   chatName: String
   initialMessage: String
+}
+
+input CreateBookingInput {
+  scheduledAt: String!
+  serviceType: String!
+  userNote: String
 }
 
 input CreateOrderInput {
@@ -131,19 +148,28 @@ type Mutation {
   adminAskAi(authorization: String!, input: AdminAskAiInput!): AdminAiResponse!
   adminSendMessage(authorization: String!, input: AdminSendMessageInput!): Message!
   assignConversation(authorization: String!, input: AssignConversationInput!): ConversationParticipant!
+  cancelBooking(authorization: String!, id: String!): Booking!
   closeConversation(authorization: String!, conversationId: String!): Conversation!
   createAdminConversation(authorization: String!, input: CreateAdminConversationInput): Conversation!
+  createBooking(authorization: String!, input: CreateBookingInput!): Booking!
   createOrder(input: CreateOrderInput!): Order!
   createProduct(authorization: String!, input: CreateProductInput!): Product!
   createProducts(authorization: String!, inputs: [CreateProductInput!]!): [Product!]!
   createSupportConversation(authorization: String!, input: CreateSupportConversationInput!): Conversation!
   createUser(input: CreateUserInput!): User!
   deleteConversationPermanently(authorization: String!, conversationId: String!): Boolean!
+  deleteProduct(authorization: String!, id: String!): Boolean!
   login(input: LoginInput!): AuthPayload!
   removeCartItem(id: String!): Boolean!
   removeWishlistItem(id: String!): Boolean!
   renameConversation(authorization: String!, chatName: String!, conversationId: String!): Conversation!
   signup(input: SignupInput!): AuthPayload!
+  toggleUserActive(authorization: String!, id: String!): User!
+  updateBookingStatus(authorization: String!, input: UpdateBookingStatusInput!): Booking!
+  updateOrderStatus(authorization: String!, id: String!, status: String!): Order!
+  updateProduct(authorization: String!, id: String!, input: UpdateProductInput!): Product!
+  userSendMessage(authorization: String!, content: String!, conversationId: String!): Message!
+  userStartSupportChat(authorization: String!, initialMessage: String): Conversation!
 }
 
 type Order {
@@ -174,13 +200,18 @@ type Product {
 
 type Query {
   adminConversations(authorization: String!, filter: AdminChatFilterInput): [Conversation!]!
+  bookings(authorization: String!): [Booking!]!
   cartItems(userId: String!): [CartItem!]!
   conversationMessages(authorization: String!, conversationId: String!): [Message!]!
+  getAllUsers(authorization: String!): [User!]!
+  myBookings(authorization: String!): [Booking!]!
   order(id: String!): Order
   orders: [Order!]!
   product(id: String!): Product
   products: [Product!]!
   user(id: String!): User
+  userConversationMessages(authorization: String!, conversationId: String!): [Message!]!
+  userConversations(authorization: String!): [Conversation!]!
   users: [User!]!
   wishlistItems(userId: String!): [WishlistItem!]!
 }
@@ -189,6 +220,22 @@ input SignupInput {
   email: String!
   name: String!
   password: String!
+}
+
+input UpdateBookingStatusInput {
+  adminNote: String
+  id: String!
+  status: String!
+}
+
+input UpdateProductInput {
+  category: String
+  description: String
+  imageUrl: String
+  name: String
+  price: Float
+  rating: Float
+  stock: Int
 }
 
 type User {

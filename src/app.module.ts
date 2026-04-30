@@ -12,6 +12,7 @@ import { CartModule } from "./modules/cart/cart.module";
 import { WishlistModule } from "./modules/wishlist/wishlist.module";
 import { OrdersModule } from "./modules/orders/orders.module";
 import { ChatModule } from "./modules/chat/chat.module";
+import { BookingsModule } from "./modules/bookings/bookings.module";
 
 @Module({
   imports: [
@@ -45,7 +46,8 @@ import { ChatModule } from "./modules/chat/chat.module";
     CartModule,
     WishlistModule,
     OrdersModule,
-    ChatModule
+    ChatModule,
+    BookingsModule
   ]
 })
 export class AppModule {}

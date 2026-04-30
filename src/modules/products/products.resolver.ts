@@ -3,6 +3,7 @@ import { Args, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { Product } from "../../entities/product.entity";
 import { AuthService } from "../auth/auth.service";
 import { CreateProductInput } from "./dto/create-product.input";
+import { UpdateProductInput } from "./dto/update-product.input";
 import { ProductsService } from "./products.service";
 
 @Resolver(() => Product)
@@ -38,6 +39,25 @@ export class ProductsResolver {
   ): Promise<Product[]> {
     await this.assertAdmin(authorization);
     return this.productsService.createMany(inputs);
+  }
+
+  @Mutation(() => Product)
+  async updateProduct(
+    @Args("id") id: string,
+    @Args("input") input: UpdateProductInput,
+    @Args("authorization", { type: () => String }) authorization: string
+  ): Promise<Product> {
+    await this.assertAdmin(authorization);
+    return this.productsService.update(id, input);
+  }
+
+  @Mutation(() => Boolean)
+  async deleteProduct(
+    @Args("id") id: string,
+    @Args("authorization", { type: () => String }) authorization: string
+  ): Promise<boolean> {
+    await this.assertAdmin(authorization);
+    return this.productsService.delete(id);
   }
 
   private async assertAdmin(authorization: string): Promise<void> {

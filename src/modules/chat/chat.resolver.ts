@@ -112,6 +112,50 @@ export class ChatResolver {
     return this.chatService.deleteConversationPermanently(conversationId);
   }
 
+  @Mutation(() => Conversation)
+  async userStartSupportChat(
+    @Args("authorization", { type: () => String }) authorization: string,
+    @Args("initialMessage", { type: () => String, nullable: true }) initialMessage?: string
+  ): Promise<Conversation> {
+    const payload = await this.verifyUser(authorization);
+    return this.chatService.userStartSupportChat(payload.sub, initialMessage);
+  }
+
+  @Mutation(() => Message)
+  async userSendMessage(
+    @Args("conversationId") conversationId: string,
+    @Args("content") content: string,
+    @Args("authorization", { type: () => String }) authorization: string
+  ): Promise<Message> {
+    const payload = await this.verifyUser(authorization);
+    return this.chatService.userSendMessage(conversationId, payload.sub, content);
+  }
+
+  @Query(() => [Conversation])
+  async userConversations(
+    @Args("authorization", { type: () => String }) authorization: string
+  ): Promise<Conversation[]> {
+    const payload = await this.verifyUser(authorization);
+    return this.chatService.getUserConversations(payload.sub);
+  }
+
+  @Query(() => [Message])
+  async userConversationMessages(
+    @Args("conversationId") conversationId: string,
+    @Args("authorization", { type: () => String }) authorization: string
+  ): Promise<Message[]> {
+    const payload = await this.verifyUser(authorization);
+    return this.chatService.getUserConversationMessages(conversationId, payload.sub);
+  }
+
+  private async verifyUser(authorization: string): Promise<{ sub: string; email: string; role: string }> {
+    if (!authorization?.startsWith("Bearer ")) {
+      throw new UnauthorizedException("Missing bearer token");
+    }
+    const token = authorization.replace("Bearer ", "").trim();
+    return this.authService.verifyToken(token);
+  }
+
   private async assertAdmin(
     authorization: string
   ): Promise<{ sub: string; email: string; role: string }> {

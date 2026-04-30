@@ -221,6 +221,77 @@ export class ChatService {
     return Boolean(result.affected);
   }
 
+  async userStartSupportChat(userId: string, initialMessage?: string): Promise<Conversation> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    const conversation = this.conversationsRepository.create({ status: "open", lastMessageAt: null });
+    const saved = await this.conversationsRepository.save(conversation);
+    await this.ensureParticipant(saved.id, userId, "user");
+
+    if (initialMessage?.trim()) {
+      const msg = this.messagesRepository.create({
+        conversation: saved,
+        sender: user,
+        senderType: "user",
+        content: initialMessage.trim()
+      });
+      await this.messagesRepository.save(msg);
+      saved.lastMessageAt = new Date();
+      await this.conversationsRepository.save(saved);
+    }
+
+    return this.assertConversationExists(saved.id);
+  }
+
+  async userSendMessage(conversationId: string, userId: string, content: string): Promise<Message> {
+    const conversation = await this.conversationsRepository.findOne({
+      where: { id: conversationId, participants: { user: { id: userId } } },
+      relations: { participants: { user: true } }
+    });
+    if (!conversation) throw new NotFoundException("Conversation not found or access denied");
+
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    const message = this.messagesRepository.create({
+      conversation,
+      sender: user,
+      senderType: "user",
+      content: content.trim()
+    });
+
+    const saved = await this.messagesRepository.save(message);
+    conversation.lastMessageAt = new Date();
+    await this.conversationsRepository.save(conversation);
+    return saved;
+  }
+
+  async getUserConversations(userId: string): Promise<Conversation[]> {
+    return this.conversationsRepository
+      .createQueryBuilder("conversation")
+      .innerJoin("conversation.participants", "participant")
+      .innerJoin("participant.user", "u", "u.id = :userId", { userId })
+      .leftJoinAndSelect("conversation.participants", "allParticipants")
+      .leftJoinAndSelect("allParticipants.user", "participantUser")
+      .orderBy("conversation.lastMessageAt", "DESC", "NULLS LAST")
+      .getMany();
+  }
+
+  async getUserConversationMessages(conversationId: string, userId: string): Promise<Message[]> {
+    const conversation = await this.conversationsRepository.findOne({
+      where: { id: conversationId, participants: { user: { id: userId } } },
+      relations: { participants: { user: true } }
+    });
+    if (!conversation) throw new NotFoundException("Conversation not found or access denied");
+
+    return this.messagesRepository.find({
+      where: { conversation: { id: conversationId } },
+      relations: { conversation: true },
+      order: { createdAt: "ASC" }
+    });
+  }
+
   private async ensureParticipant(
     conversationId: string,
     userId: string,
@@ -319,6 +390,127 @@ export class ChatService {
       .map((chat) => `${chat.name?.trim() || chat.id.slice(0, 8)} (${chat.status})`)
       .join(", ");
 
+    const allUsers = await this.usersRepository.find({
+      select: { id: true, name: true, email: true, role: true, isActive: true },
+      order: { name: "ASC" }
+    });
+    const allProducts = await this.productsRepository.find({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        category: true,
+        price: true,
+        stock: true,
+        rating: true,
+        imageUrl: true
+      },
+      order: { name: "ASC" }
+    });
+    const allOrders = await this.ordersRepository.find({
+      relations: { user: true, items: { product: true } }
+    });
+    const allConversations = await this.conversationsRepository.find({
+      relations: { participants: { user: true } },
+      order: { updatedAt: "DESC" }
+    });
+    const latestMessages = await this.messagesRepository.find({
+      relations: { conversation: true, sender: true },
+      order: { createdAt: "DESC" },
+      take: 500
+    });
+
+    const storeSnapshot = {
+      totals: {
+        users: totalUsers,
+        activeUsers,
+        adminUsers: totalAdmins,
+        products: totalProducts,
+        productsInStock,
+        soldUnits,
+        orders: totalOrders,
+        conversations: totalConversations,
+        openConversations,
+        messages: totalMessages,
+        totalRevenue: Number(totalRevenue.toFixed(2))
+      },
+      users: allUsers.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive
+      })),
+      products: allProducts.map((product) => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        price: Number(product.price),
+        stock: product.stock,
+        rating: Number(product.rating),
+        imageUrl: product.imageUrl
+      })),
+      orders: allOrders.map((order) => ({
+        id: order.id,
+        status: order.status,
+        total: Number(order.total),
+        user: order.user
+          ? {
+              id: order.user.id,
+              name: order.user.name,
+              email: order.user.email
+            }
+          : null,
+        items: (order.items ?? []).map((item) => ({
+          id: item.id,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          lineTotal: Number(item.unitPrice) * item.quantity,
+          product: item.product
+            ? {
+                id: item.product.id,
+                name: item.product.name,
+                category: item.product.category
+              }
+            : null
+        }))
+      })),
+      conversations: allConversations.map((conversation) => ({
+        id: conversation.id,
+        name: conversation.name,
+        status: conversation.status,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        lastMessageAt: conversation.lastMessageAt,
+        participants: (conversation.participants ?? []).map((participant) => ({
+          role: participant.role,
+          user: participant.user
+            ? {
+                id: participant.user.id,
+                name: participant.user.name,
+                email: participant.user.email,
+                role: participant.user.role
+              }
+            : null
+        }))
+      })),
+      latestMessages: latestMessages.map((message) => ({
+        id: message.id,
+        content: message.content,
+        senderType: message.senderType,
+        createdAt: message.createdAt,
+        conversationId: message.conversation?.id ?? null,
+        sender: message.sender
+          ? {
+              id: message.sender.id,
+              name: message.sender.name,
+              email: message.sender.email
+            }
+          : null
+      }))
+    };
+
     return [
       "database_scope=users, products, orders, order_items, conversations, messages, cart_items, wishlist_items",
       `total_users=${totalUsers}`,
@@ -334,7 +526,10 @@ export class ChatService {
       `total_revenue=${totalRevenue.toFixed(2)}`,
       `top_products=${topProducts || "N/A"}`,
       `all_product_names=${allProductNames || "N/A"}`,
-      `recent_chats=${recentChatSummary || "N/A"}`
+      `recent_chats=${recentChatSummary || "N/A"}`,
+      "",
+      "STORE_SNAPSHOT_JSON",
+      JSON.stringify(storeSnapshot)
     ].join("\n");
   }
 }

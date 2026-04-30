@@ -62,4 +62,11 @@ export class OrdersService {
   async findById(id: string): Promise<Order | null> {
     return this.ordersRepository.findOne({ where: { id } });
   }
+
+  async updateStatus(id: string, status: string): Promise<Order> {
+    const order = await this.ordersRepository.findOne({ where: { id } });
+    if (!order) throw new Error("Order not found");
+    order.status = status;
+    return this.ordersRepository.save(order);
+  }
 }
